@@ -227,7 +227,7 @@ class Settings(Page):
     def __init__(self, width, height):
         super(Settings, self).__init__(width, height)
         self.keys['Menu'] = K_TAB
-        self.easy = True
+        self.difficulty = DIFFICULTY['Easy']
         self.sound = True
         self.music = True
 
@@ -236,8 +236,12 @@ class Settings(Page):
         width = self.surface.get_width()
         height = self.surface.get_height()
         self.display_text('Difficulty:', height / 10, WHITE, (width / 2, 2 * height / 7))
-        self.buttons['Easy'] = self.display_text(' Easy ', height / 10, WHITE if self.easy else RED, (width / 3, 3 * height / 7), RED if self.easy else BLACK)
-        self.buttons['Hard'] = self.display_text(' Hard ', height / 10, WHITE if not self.easy else RED, (2 * width / 3, 3 * height / 7), RED if not self.easy else BLACK)
+        self.buttons['Easy'] = self.display_text(' Easy ', height / 10, WHITE if self.difficulty == DIFFICULTY['Easy'] else RED,
+                (width / 4, 3 * height / 7), RED if self.difficulty == DIFFICULTY['Easy'] else BLACK)
+        self.buttons['Normal'] = self.display_text(' Normal ', height / 10, WHITE if self.difficulty == DIFFICULTY['Normal'] else RED,
+                (width / 2, 3 * height / 7), RED if self.difficulty == DIFFICULTY['Normal'] else BLACK)
+        self.buttons['Hard'] = self.display_text(' Hard ', height / 10, WHITE if self.difficulty == DIFFICULTY['Hard'] else RED,
+                (3 * width / 4, 3 * height / 7), RED if self.difficulty == DIFFICULTY['Hard'] else BLACK)
         self.display_text('Audio:', height / 10, WHITE, (width / 2, 4 * height / 7))
         self.buttons['Sound'] = self.display_text(' Sound ', height / 10, WHITE if self.sound else RED, (width / 3, 5 * height / 7), RED if self.sound else BLACK)
         self.buttons['Music'] = self.display_text(' Music ', height / 10, WHITE if self.music else RED, (2 * width / 3, 5 * height / 7), RED if self.music else BLACK)
@@ -281,6 +285,7 @@ class Pause(Page):
         width = self.surface.get_width()
         height = self.surface.get_height()
         self.display_text('Paused', height / 4, YELLOW, (width / 2, height / 2))
+        self.buttons['Unpause'] = self.display_text('Resume', height / 8, GREEN, (width / 2, 3 * height / 4))
 
 class Confirm(Page):
 
@@ -317,14 +322,14 @@ class GameOver(Page):
         if not self.game == None:
             self.display_text('Game Over!', height / 4, RED, (width / 2, 2 * height / 6))
             if len(self.game.snakes) == 1:
-                self.display_text('Score: ' + str(self.game.snakes[0].score), height / 8, CYAN, (width / 2, height / 2))
+                self.display_text('Score: ' + str(self.game.snakes[0].score), height / 8, GREEN, (width / 2, height / 2))
                 self.display_text('Leaderboard:', height / 10, WHITE, (width / 2, 4 * height / 7 + height / 10))
                 self.scores.append(self.game.snakes[0].score)
                 self.scores = list(set(self.scores))
                 self.scores.sort(reverse=True)
                 for i in range(0, min(len(self.scores), 3)):
-                    self.display_text(str(i + 1) + '. ', height / 15, CYAN if self.scores[i] == self.game.snakes[0].score else WHITE, (3 * width / 7, 4 * height / 7 + (i + 2) * height / 11))
-                    self.display_text(str(self.scores[i]), height / 15, CYAN if self.scores[i] == self.game.snakes[0].score else WHITE, (4 * width / 7, 4 * height / 7 + (i + 2) * height / 11))
+                    self.display_text(str(i + 1) + '. ', height / 15, GREEN if self.scores[i] == self.game.snakes[0].score else WHITE, (3 * width / 7, 4 * height / 7 + (i + 2) * height / 11))
+                    self.display_text(str(self.scores[i]), height / 15, GREEN if self.scores[i] == self.game.snakes[0].score else WHITE, (4 * width / 7, 4 * height / 7 + (i + 2) * height / 11))
             else:
                 total = []
                 self.display_text('Score:', height / 15, BLUE, (width / 6, 3 * height / 7))
@@ -377,9 +382,9 @@ class UserInterface:
 
     def changePage(self, page):
         if page == 'GameOver' and len(self.game.snakes) == 1:
-            self.pages[page].scores = self.readLeaderboard('resources/highscores')
+            self.pages[page].scores = self.readLeaderboard()
         elif self.current_page == 'GameOver' and len(self.game.snakes) == 1:
-            self.writeLeaderboard('resources/highscores', self.pages[self.current_page].scores)
+            self.writeLeaderboard(self.pages[self.current_page].scores)
         self.playMusic(page)
         self.current_page = page
         self.pages[self.current_page].update()
@@ -404,21 +409,19 @@ class UserInterface:
                 if self.game.snakes[1].changeDirection(self.pages['Game'].keys['Viper'].index(event.key)):
                     flagViper = True
             if pressed == 'Single':
-                self.game = Game(1, EASY if self.pages['Settings'].easy else HARD)
+                self.game = Game(1, self.pages['Settings'].difficulty)
                 self.pages['Game'].game = self.game
                 self.pages['GameOver'].game = self.game
                 self.changePage('Game')
             elif pressed == 'Multi':
-                self.game = Game(2, EASY if self.pages['Settings'].easy else HARD)
+                self.game = Game(2, self.pages['Settings'].difficulty)
                 self.pages['Game'].game = self.game
                 self.pages['GameOver'].game = self.game
                 self.changePage('Game')
             elif pressed == 'Settings':
                 self.changePage('Settings')
-            elif pressed == 'Easy':
-                self.pages['Settings'].easy = True
-            elif pressed == 'Hard':
-                self.pages['Settings'].easy = False
+            elif pressed == 'Easy' or pressed == 'Normal' or pressed == 'Hard':
+                self.pages['Settings'].difficulty = DIFFICULTY[pressed]
             elif pressed == 'Sound':
                 self.pages['Settings'].sound = not self.pages['Settings'].sound
                 for sound in SOUNDS.values():
@@ -459,31 +462,43 @@ class UserInterface:
         pygame.display.flip()
 
     def playMusic(self, page):
-        if not self.current_page == 'Settings' and page in MUSIC.keys():
+        if not self.current_page == 'Settings':
             if page == 'Game':
                 if self.current_page == 'Pause' or self.current_page == 'Confirm':
                     pygame.mixer.music.unpause()
                 else:
-                    pygame.mixer.music.load(MUSIC[page][0 if self.pages['Settings'].easy else 1])
+                    pygame.mixer.music.load(MUSIC[self.game.fps])
                     pygame.mixer.music.play(loops=-1)
             elif page == 'Pause' or page == 'Confirm':
                 pygame.mixer.music.pause()
-            else:
+            elif not page == 'Settings':
                 pygame.mixer.music.load(MUSIC[page])
                 pygame.mixer.music.play(loops=-1)
 
-    def readLeaderboard(self, file):
+    def readLeaderboard(self):
         scores = []
         try:
-            with open('resources/.highscores', 'r') as f:
+            if self.game.fps == DIFFICULTY['Easy']:
+                file = 'resources/.easy'
+            elif self.game.fps == DIFFICULTY['Normal']:
+                file = 'resources/.normal'
+            elif self.game.fps == DIFFICULTY['Hard']:
+                file = 'resources/.hard'
+            with open(file, 'r') as f:
                 for line in f:
                     scores.append(int(line.strip()))
         except:
             scores = []
         return scores
 
-    def writeLeaderboard(self, file, scores):
-        with open('resources/.highscores', 'w') as f:
+    def writeLeaderboard(self, scores):
+        if self.game.fps == DIFFICULTY['Easy']:
+            file = 'resources/.easy'
+        elif self.game.fps == DIFFICULTY['Normal']:
+            file = 'resources/.normal'
+        elif self.game.fps == DIFFICULTY['Hard']:
+            file = 'resources/.hard'
+        with open(file, 'w') as f:
             for s in scores[:3]:
                 f.write(str(s) + '\n')
 
@@ -507,11 +522,18 @@ APPLE_COLORS = {
         AppleTypes.GOLDEN : YELLOW,
         AppleTypes.LIFE : MAGENTA
         }
-
+# FPS
+DIFFICULTY = {
+        'Easy' : 30,
+        'Normal' : 45,
+        'Hard': 60
+        }
 # Music
 MUSIC = {
         'Menu' : 'resources/intro.wav',
-        'Game' : ['resources/easy.wav', 'resources/hard.wav'],
+        DIFFICULTY['Easy'] : 'resources/easy.wav',
+        DIFFICULTY['Normal'] : 'resources/hard.wav',
+        DIFFICULTY['Hard'] : 'resources/hard.wav',
         'Pause' : None,
         'Confirm' : None,
         'GameOver' : 'resources/game_over.wav'
@@ -526,9 +548,6 @@ SOUNDS = {
 # Grid Size
 CELL_COUNT_X = 96
 CELL_COUNT_Y = 54
-# FPS
-EASY = 30
-HARD = 60
 # Utils
 ANIMATION_SPEED = 20
 APPLE_EXPIRATION = 120
