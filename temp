@@ -1,0 +1,23 @@
+
+    def loadSettings(self):
+        try:
+            with open('resources/.settings', 'r') as f:
+                for line in f:
+                    settings = line.split(':')
+                    if settings[0] == 'Difficulty':
+                        self.difficulty = int(settings[1][:-1])
+                    # elif settings[0] == 'Controls':
+                        # self.controls = settings[1][:-1]
+                    elif settings[0] == 'Music':
+                        self.music = settings[1][:-1] == 'True'
+                    elif settings[0] == 'Sound':
+                        self.sound = settings[1][:-1] == 'True'
+        except:
+            pass
+
+    def saveSettings(self):
+        with open('resources/.settings', 'w') as f:
+            f.write('Difficulty:' + str(self.difficulty) + '\n')
+            f.write('Controls:' + str(self.controls) + ' \n')
+            f.write('Music:' + str(self.music) + '\n')
+            f.write('Sound:' + str(self.sound) + '\n')
