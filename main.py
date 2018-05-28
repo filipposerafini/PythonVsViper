@@ -254,6 +254,7 @@ class Settings(Page):
         self.sound = True
         self.music = True
         self.loadSettings()
+        pygame.time.set_timer(pygame.USEREVENT, int(1000 / list(DIFFICULTY.values())[self.difficulty]))
 
     def update(self):
         super(Settings, self).update()
@@ -461,6 +462,7 @@ class UserInterface:
             self.changePage('Leaderboard')
         elif pressed == 'Difficulty':
             self.pages['Settings'].difficulty = (self.pages['Settings'].difficulty + 1) % 3
+            pygame.time.set_timer(pygame.USEREVENT, int(1000 / list(DIFFICULTY.values())[self.pages['Settings'].difficulty]))
         elif pressed == 'Sound':
             self.pages['Settings'].sound = not self.pages['Settings'].sound
             for sound in SOUNDS.values():
@@ -597,9 +599,6 @@ height = CELL_COUNT_Y * cell_size
 
 ui = UserInterface(width, height, cell_size)
 ui.changePage('Menu')
-
-clock = pygame.time.Clock()
-pygame.time.set_timer(pygame.USEREVENT, int(1000 / 30))
 
 # Loop
 while ui.handle():
