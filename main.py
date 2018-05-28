@@ -410,9 +410,7 @@ class UserInterface:
             pygame.display.flip()
 
     def changePage(self, page):
-        if page == 'GameOver' and len(self.game.snakes) == 1:
-            self.pages[page].scores = self.loadLeaderboard(self.game.fps)
-        elif self.current_page == 'GameOver' and len(self.game.snakes) == 1:
+        if self.current_page == 'GameOver' and len(self.game.snakes) == 1:
             self.saveLeaderboard(self.pages[self.current_page].scores, self.game.fps)
             self.pages['Leaderboard'].scores[self.game.fps] = self.loadLeaderboard(self.game.fps)
         self.playMusic(page)
@@ -436,7 +434,7 @@ class UserInterface:
                 self.viper_flag = False
                 if self.current_page == 'Game':
                     if not self.game.updateSnakes():
-                        self.pages['GameOver'] = GameOver(width, height, self.game, self.loadLeaderboard(DIFFICULTY['Easy']))
+                        self.pages['GameOver'] = GameOver(width, height, self.game, self.loadLeaderboard(self.game.fps))
                         self.changePage('GameOver')
                     return True
                 else:
