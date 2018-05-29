@@ -4,17 +4,69 @@ from pygame.locals import *
 
 class AppleTypes:
 
-    NORMAL, GOLDEN, LIFE = range(3)
+    NORMAL, GOLDEN, LIFE, SPECIAL = range(4)
 
 class Apple:
 
-    def __init__(self, x, y, type):
-        self.x = x
-        self.y = y
-        self.type = type
+    def __init__(self, snakes):
+        retry = True
+        while retry:
+            retry = False
+            self.x = random.randint(0, CELL_COUNT_X - 1)
+            self.y = random.randint(0, CELL_COUNT_Y - 1)
+            for snake in snakes:
+                for i in range(0, snake.length):
+                    if self.x == snake.x[i] and self.y == snake.y[i]:
+                        retry = True
+        self.type = random.choice([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3])
         self.expiration = 0
+        self.moves = 0
+        self.direction = random.choice([0, 1, 2, 3])
         if not type == AppleTypes.NORMAL:
             self.expiration = APPLE_EXPIRATION
+            if type == AppleTypes.SPECIAL:
+                self.moves = SPECIAL_FRAMES
+
+    def move(self):
+        if self.moves == 0:
+            dir = random.choice([
+                self.direction,
+                self.direction,
+                self.direction,
+                self.direction,
+                self.direction,
+                self.direction,
+                self.direction,
+                (self.direction + 1) % 4,
+                (self.direction + 2) % 4,
+                (self.direction + 3) % 4])
+            if dir == 0:
+                if not self.x == CELL_COUNT_X - 1:
+                    self.x += 1
+                else:
+                    self.x -= 1
+                    self.direction = 2
+            if dir == 1:
+                if not self.y == CELL_COUNT_Y - 1:
+                    self.y += 1
+                else:
+                    self.y -= 1
+                    self.direction = 3
+            if dir == 2:
+                if not self.x == 0:
+                    self.x -= 1
+                else:
+                    self.x += 1
+                    self.direction = 1
+            if dir == 3:
+                if not self.y == 0:
+                    self.y -= 1
+                else:
+                    self.y += 1
+                    self.direction = 0
+            self.moves = SPECIAL_FRAMES
+        else:
+            self.moves -= 1
 
     def draw(self, surface, cell_size):
         body = pygame.Surface((cell_size, cell_size))
@@ -89,6 +141,10 @@ class Snake:
                     self.lives += 1
                 else:
                     self.score += 20
+            elif apple.type == AppleTypes.SPECIAL:
+                SOUNDS['Special'].play()
+                self.addPiece(5)
+                self.score += 100
             return True
         return False
 
@@ -132,11 +188,11 @@ class Game:
 
     def __init__(self, players, fps):
         self.fps = fps
-        self.apple = Apple(CELL_COUNT_X / 2, CELL_COUNT_Y / 2, AppleTypes.NORMAL)
         self.snakes = []
         self.snakes.append(Snake(random.randint(0, CELL_COUNT_X / 2), random.randint(0, CELL_COUNT_Y / 2), 15, 3, BLUE))
         if players == 2:
             self.snakes.append(Snake(random.randint(CELL_COUNT_X / 2, CELL_COUNT_X - 1), random.randint(CELL_COUNT_Y / 2, CELL_COUNT_Y - 1), 15, 3, GREEN))
+        self.apple = Apple(self.snakes)
 
     def restart(self):
         return Game(len(self.snakes), self.fps)
@@ -148,6 +204,8 @@ class Game:
             self.apple.expiration -= 1
         for snake in self.snakes:
             snake.updatePosition()
+            if self.apple.type == AppleTypes.SPECIAL:
+                self.apple.move()
             if snake.hitSnake(snake) or snake.hitBorder():
                 SOUNDS['Hit'].play()
                 snake.changeColor(RED)
@@ -156,7 +214,7 @@ class Game:
             if snake.eatApple(self.apple):
                 if not self.apple.type == AppleTypes.NORMAL:
                     snake.changeColor(APPLE_COLORS[self.apple.type])
-                self.apple = Apple(random.randint(0, CELL_COUNT_X - 1 ), random.randint(0, CELL_COUNT_Y - 1), random.choice([0, 0, 0, 0, 0, 0, 0, 0, 1, 2]))
+                self.apple = Apple(self.snakes)
         return True
 
     def drawSnakes(self, surface, cell_size):
@@ -166,8 +224,8 @@ class Game:
 
 class Page(object):
 
-    def __init__(self, width, height):
-        self.surface = pygame.Surface((width, height))
+    def __init__(self, width, height, surface):
+        self.surface = surface
         self.surface.fill(BLACK)
         self.buttons = {}
         self.keys = {
@@ -202,8 +260,8 @@ class Page(object):
 
 class Menu(Page):
 
-    def __init__(self, width, height):
-        super(Menu, self).__init__(width, height)
+    def __init__(self, width, height, surface):
+        super(Menu, self).__init__(width, height, surface)
         self.display_text('Python', height / 4, BLUE, (2 * width / 7 + width / 32, 2 * height / 5))
         self.display_text('VS', height / 7, RED, (width / 2 + width / 40, 2 * height / 5 - height / 50))
         self.display_text('Viper', height / 4, GREEN, (5 * width / 7 - width / 32, 2 * height / 5))
@@ -219,8 +277,8 @@ class Menu(Page):
 
 class Leaderboard(Page):
 
-    def __init__(self, width, height):
-        super(Leaderboard, self).__init__(width, height)
+    def __init__(self, width, height, surface):
+        super(Leaderboard, self).__init__(width, height, surface)
         self.display_text('Leaderboard:', height / 6, YELLOW, (width / 2, 2 * height / 7))
         difficulty = ['Easy', 'Normal', 'Hard']
         for i in range (1, 4):
@@ -245,8 +303,8 @@ class Leaderboard(Page):
 
 class Settings(Page):
 
-    def __init__(self, width, height):
-        super(Settings, self).__init__(width, height)
+    def __init__(self, width, height, surface):
+        super(Settings, self).__init__(width, height, surface)
         self.display_text('Difficulty:', height / 7, WHITE, (width / 3, 2 * height / 5))
         self.display_text('Audio:', height / 7, WHITE, (width / 3 - width / 20, 4 * height / 5))
         self.keys['Menu'] = K_TAB
@@ -254,7 +312,6 @@ class Settings(Page):
         self.sound = True
         self.music = True
         self.loadSettings()
-        # pygame.time.set_timer(pygame.USEREVENT, int(1000 / list(DIFFICULTY.values())[self.difficulty]))
 
     def update(self):
         super(Settings, self).update()
@@ -264,7 +321,6 @@ class Settings(Page):
         self.buttons['Difficulty'] = self.display_text('   ' + key + '  ', height / 7, RED, (7 * width / 10, 2 * height / 5), BLACK)
         self.buttons['Music'] = self.display_text(' Music ', height / 9, WHITE if self.music else RED, (4 * width / 5, 4 * height / 5 - height / 50), RED if self.music else BLACK)
         self.buttons['Sound'] = self.display_text(' Sound ', height / 9, WHITE if self.sound else RED, (3 * width / 5, 4 * height / 5 - height / 50), RED if self.sound else BLACK)
-
 
     def loadSettings(self):
         try:
@@ -288,8 +344,8 @@ class Settings(Page):
 
 class GameField(Page):
 
-    def __init__(self, width, height, cell_size):
-        super(GameField, self).__init__(width, height)
+    def __init__(self, width, height, cell_size, surface):
+        super(GameField, self).__init__(width, height, surface)
         self.cell_size = cell_size
         self.keys['Menu'] = K_ESCAPE
         self.keys['Pause'] = K_p
@@ -312,10 +368,10 @@ class GameField(Page):
 
 class Pause(Page):
 
-    def __init__(self, width, height, surface):
-        super(Pause, self).__init__(width, height)
+    def __init__(self, width, height, surface, game_surface):
+        super(Pause, self).__init__(width, height, surface)
         self.surface.fill(WHITE)
-        self.game_surface = surface
+        self.game_surface = game_surface
         self.game_surface.set_alpha(220)
         self.surface.blit(self.game_surface, (0, 0))
         self.display_text('Paused', height / 4, YELLOW, (width / 2, height / 2))
@@ -324,10 +380,10 @@ class Pause(Page):
 
 class Confirm(Page):
 
-    def __init__(self, width, height, surface):
-        super(Confirm, self).__init__(width, height)
+    def __init__(self, width, height, surface, game_surface):
+        super(Confirm, self).__init__(width, height, surface)
         self.surface.fill(WHITE)
-        self.game_surface = surface
+        self.game_surface = game_surface
         self.game_surface.set_alpha(220)
         self.surface.blit(self.game_surface, (0, 0))
         self.display_text('Are you sure?', height / 4, YELLOW, (width / 2, height / 2))
@@ -338,8 +394,8 @@ class Confirm(Page):
 
 class GameOver(Page):
 
-    def __init__(self, width, height, game, scores):
-        super(GameOver, self).__init__(width, height)
+    def __init__(self, width, height, game, scores, surface):
+        super(GameOver, self).__init__(width, height, surface)
         self.keys['Menu'] = K_ESCAPE
         self.keys['Restart'] = K_RETURN
         self.game = game
@@ -384,23 +440,15 @@ class GameOver(Page):
 
 class UserInterface:
 
+    clock = pygame.time.Clock()
     def __init__(self, width, height, cell_size):
         self.screen = pygame.display.set_mode((width, height), pygame.HWSURFACE)
         self.game = None
         self.pages = {}
-        self.pages['Menu'] = Menu(width, height)
-        self.pages['Settings'] = Settings(width, height)
-        self.pages['Leaderboard'] = Leaderboard(width, height)
-        self.pages['Leaderboard'].scores[DIFFICULTY['Easy']] = self.loadLeaderboard(DIFFICULTY['Easy'])
-        self.pages['Leaderboard'].scores[DIFFICULTY['Normal']] = self.loadLeaderboard(DIFFICULTY['Normal'])
-        self.pages['Leaderboard'].scores[DIFFICULTY['Hard']] = self.loadLeaderboard(DIFFICULTY['Hard'])
-        self.pages['Game'] = GameField(width, height, cell_size)
-        self.pages['GameOver'] = None
-        self.pages['Pause'] = None
-        self.pages['Confirm'] = None
+        self.pages['Settings'] = Settings(width, height, self.screen)
+        self.pages['Menu'] = Menu(width, height, self.screen)
         self.current_page = None
         self.update_flag = True
-        self.clock = pygame.time.Clock()
 
     def fadeBetweenSurfaces(self, surface):
         for i in range(0, 255, ANIMATION_SPEED):
@@ -411,14 +459,13 @@ class UserInterface:
     def changePage(self, page):
         if self.current_page == 'GameOver' and len(self.game.snakes) == 1:
             self.saveLeaderboard(self.pages[self.current_page].scores, self.game.fps)
-            self.pages['Leaderboard'].scores[self.game.fps] = self.loadLeaderboard(self.game.fps)
+        elif self.current_page == 'Settings':
+            self.pages[self.current_page].saveSettings()
         self.playMusic(page)
         self.current_page = page
-        self.pages[self.current_page].update()
-        self.fadeBetweenSurfaces(self.pages[self.current_page].surface)
+        self.update()
 
     def handleGame(self):
-        # pygame.time.wait(int(1000 / self.game.fps))
         self.clock.tick(self.game.fps)
         python_flag = False
         viper_flag = False
@@ -427,8 +474,6 @@ class UserInterface:
                 return False
             elif event.type == KEYDOWN:
                 pressed = self.pages[self.current_page].getKeys(event.key)
-            # elif event.type == MOUSEBUTTONDOWN:
-                # pressed = self.pages[self.current_page].getButton(event.pos)
             else:
                 continue
             if pressed == 'Python' and not python_flag:
@@ -438,15 +483,15 @@ class UserInterface:
                 if self.game.snakes[1].changeDirection(self.pages['Game'].keys['Viper'].index(event.key)):
                     viper_flag = True
             elif pressed == 'Menu':
-                self.pages['Confirm'] = Confirm(width, height, self.pages['Game'].surface)
+                self.pages['Confirm'] = Confirm(width, height, self.screen, self.screen.copy())
                 self.changePage('Confirm')
             elif pressed == 'Pause':
-                self.pages['Pause'] = Pause(width, height, self.pages['Game'].surface)
+                self.pages['Pause'] = Pause(width, height, self.screen, self.screen.copy())
                 self.changePage('Pause')
             else:
                 continue
         if not self.game.updateSnakes():
-            self.pages['GameOver'] = GameOver(self.screen.get_width(), self.screen.get_height(), self.game, self.loadLeaderboard(self.game.fps))
+            self.pages['GameOver'] = GameOver(self.screen.get_width(), self.screen.get_height(), self.game, self.loadLeaderboard(self.game.fps), self.screen)
             self.changePage('GameOver')
         return True
 
@@ -465,15 +510,22 @@ class UserInterface:
                 continue
         if pressed == 'Single':
             self.game = Game(1, list(DIFFICULTY.values())[self.pages['Settings'].difficulty])
+            self.pages['Game'] = GameField(width, height, cell_size, self.screen)
             self.pages['Game'].game = self.game
             self.changePage('Game')
         elif pressed == 'Multi':
             self.game = Game(2, list(DIFFICULTY.values())[self.pages['Settings'].difficulty])
+            self.pages['Game'] = GameField(width, height, cell_size, self.screen)
             self.pages['Game'].game = self.game
             self.changePage('Game')
         elif pressed == 'Settings':
+            self.pages['Settings'] = Settings(width, height, self.screen)
             self.changePage('Settings')
         elif pressed == 'Leaderboard':
+            self.pages['Leaderboard'] = Leaderboard(width, height, self.screen)
+            self.pages['Leaderboard'].scores[DIFFICULTY['Easy']] = self.loadLeaderboard(DIFFICULTY['Easy'])
+            self.pages['Leaderboard'].scores[DIFFICULTY['Normal']] = self.loadLeaderboard(DIFFICULTY['Normal'])
+            self.pages['Leaderboard'].scores[DIFFICULTY['Hard']] = self.loadLeaderboard(DIFFICULTY['Hard'])
             self.changePage('Leaderboard')
         elif pressed == 'Difficulty':
             self.pages['Settings'].difficulty = (self.pages['Settings'].difficulty + 1) % 3
@@ -485,15 +537,18 @@ class UserInterface:
             self.pages['Settings'].music = not self.pages['Settings'].music
             pygame.mixer.music.set_volume(1 if self.pages['Settings'].music else 0)
         elif pressed == 'Menu':
+            self.pages['Menu'] = Menu(width, height, self.screen)
             self.changePage('Menu')
         elif pressed == 'Unpause':
             self.changePage('Game')
         elif pressed == 'Yes':
+            self.pages['Menu'] = Menu(width, height, self.screen)
             self.changePage('Menu')
         elif pressed == 'No':
             self.changePage('Game')
         elif pressed == 'Restart':
             self.game = self.game.restart()
+            self.pages['Game'] = GameField(width, height, cell_size, self.screen)
             self.pages['Game'].game = self.game
             self.changePage('Game')
         elif pressed == 'Quit':
@@ -504,7 +559,6 @@ class UserInterface:
 
     def update(self):
         self.pages[self.current_page].update()
-        self.screen.blit(self.pages[self.current_page].surface, (0, 0))
         pygame.display.flip()
 
     def playMusic(self, page):
@@ -566,7 +620,8 @@ MAGENTA = (255, 0, 255)
 APPLE_COLORS = {
         AppleTypes.NORMAL : RED,
         AppleTypes.GOLDEN : YELLOW,
-        AppleTypes.LIFE : MAGENTA
+        AppleTypes.LIFE : MAGENTA,
+        AppleTypes.SPECIAL : CYAN
         }
 # FPS
 DIFFICULTY = {
@@ -578,7 +633,7 @@ DIFFICULTY = {
 MUSIC = {
         'Menu' : 'resources/intro.wav',
         DIFFICULTY['Easy'] : 'resources/easy.wav',
-        DIFFICULTY['Normal'] : 'resources/hard.wav',
+        DIFFICULTY['Normal'] : 'resources/normal.wav',
         DIFFICULTY['Hard'] : 'resources/hard.wav',
         'Pause' : None,
         'Confirm' : None,
@@ -589,6 +644,7 @@ SOUNDS = {
         'Apple' : pygame.mixer.Sound('resources/apple.wav'),
         'Golden' : pygame.mixer.Sound('resources/golden.wav'),
         'Life' : pygame.mixer.Sound('resources/life.wav'),
+        'Special' : pygame.mixer.Sound('resources/special.wav'),
         'Hit' : pygame.mixer.Sound('resources/hit.wav'),
         }
 # Grid Size
@@ -596,6 +652,7 @@ CELL_COUNT_X = 96
 CELL_COUNT_Y = 54
 # Utils
 ANIMATION_SPEED = 20
+SPECIAL_FRAMES = 3
 APPLE_EXPIRATION = 120
 SNAKE_EXPIRATION = 40
 
