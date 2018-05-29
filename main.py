@@ -254,7 +254,7 @@ class Settings(Page):
         self.sound = True
         self.music = True
         self.loadSettings()
-        pygame.time.set_timer(pygame.USEREVENT, int(1000 / list(DIFFICULTY.values())[self.difficulty]))
+        # pygame.time.set_timer(pygame.USEREVENT, int(1000 / list(DIFFICULTY.values())[self.difficulty]))
 
     def update(self):
         super(Settings, self).update()
@@ -346,7 +346,6 @@ class GameOver(Page):
         self.scores = scores
         self.display_text('Game Over!', height / 4, RED, (width / 2, 2 * height / 6))
         if not self.game == None:
-            self.display_text('Game Over!', height / 4, RED, (width / 2, 2 * height / 6))
             if len(self.game.snakes) == 1:
                 self.display_text('Score: ' + str(self.game.snakes[0].score), height / 8, GREEN, (width / 2, height / 2))
                 self.display_text('Leaderboard:', height / 10, WHITE, (width / 2, 4 * height / 7 + height / 10))
@@ -400,9 +399,8 @@ class UserInterface:
         self.pages['Pause'] = None
         self.pages['Confirm'] = None
         self.current_page = None
-        self.python_flag = False
-        self.viper_flag = False
         self.update_flag = True
+        self.clock = pygame.time.Clock()
 
     def fadeBetweenSurfaces(self, surface):
         for i in range(0, 255, ANIMATION_SPEED):
@@ -419,6 +417,39 @@ class UserInterface:
         self.pages[self.current_page].update()
         self.fadeBetweenSurfaces(self.pages[self.current_page].surface)
 
+    def handleGame(self):
+        # pygame.time.wait(int(1000 / self.game.fps))
+        self.clock.tick(self.game.fps)
+        python_flag = False
+        viper_flag = False
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                return False
+            elif event.type == KEYDOWN:
+                pressed = self.pages[self.current_page].getKeys(event.key)
+            # elif event.type == MOUSEBUTTONDOWN:
+                # pressed = self.pages[self.current_page].getButton(event.pos)
+            else:
+                continue
+            if pressed == 'Python' and not python_flag:
+                if self.game.snakes[0].changeDirection(self.pages['Game'].keys['Python'].index(event.key)):
+                    python_flag = True
+            elif pressed == 'Viper' and len(self.game.snakes) == 2 and not viper_flag:
+                if self.game.snakes[1].changeDirection(self.pages['Game'].keys['Viper'].index(event.key)):
+                    viper_flag = True
+            elif pressed == 'Menu':
+                self.pages['Confirm'] = Confirm(width, height, self.pages['Game'].surface)
+                self.changePage('Confirm')
+            elif pressed == 'Pause':
+                self.pages['Pause'] = Pause(width, height, self.pages['Game'].surface)
+                self.changePage('Pause')
+            else:
+                continue
+        if not self.game.updateSnakes():
+            self.pages['GameOver'] = GameOver(self.screen.get_width(), self.screen.get_height(), self.game, self.loadLeaderboard(self.game.fps))
+            self.changePage('GameOver')
+        return True
+
     def handle(self):
         while True:
             event = pygame.event.wait()
@@ -430,25 +461,9 @@ class UserInterface:
             elif event.type == MOUSEBUTTONDOWN:
                 pressed = self.pages[self.current_page].getButton(event.pos)
                 break
-            elif event.type == pygame.USEREVENT:
-                self.python_flag = False
-                self.viper_flag = False
-                if self.current_page == 'Game':
-                    if not self.game.updateSnakes():
-                        self.pages['GameOver'] = GameOver(width, height, self.game, self.loadLeaderboard(self.game.fps))
-                        self.changePage('GameOver')
-                    return True
-                else:
-                    continue
             else:
                 continue
-        if pressed == 'Python' and not self.python_flag:
-            if self.game.snakes[0].changeDirection(self.pages['Game'].keys['Python'].index(event.key)):
-                self.python_flag = True
-        elif pressed == 'Viper' and len(self.game.snakes) == 2 and not self.viper_flag:
-            if self.game.snakes[1].changeDirection(self.pages['Game'].keys['Viper'].index(event.key)):
-                self.viper_flag = True
-        elif pressed == 'Single':
+        if pressed == 'Single':
             self.game = Game(1, list(DIFFICULTY.values())[self.pages['Settings'].difficulty])
             self.pages['Game'].game = self.game
             self.changePage('Game')
@@ -462,7 +477,6 @@ class UserInterface:
             self.changePage('Leaderboard')
         elif pressed == 'Difficulty':
             self.pages['Settings'].difficulty = (self.pages['Settings'].difficulty + 1) % 3
-            pygame.time.set_timer(pygame.USEREVENT, int(1000 / list(DIFFICULTY.values())[self.pages['Settings'].difficulty]))
         elif pressed == 'Sound':
             self.pages['Settings'].sound = not self.pages['Settings'].sound
             for sound in SOUNDS.values():
@@ -471,14 +485,7 @@ class UserInterface:
             self.pages['Settings'].music = not self.pages['Settings'].music
             pygame.mixer.music.set_volume(1 if self.pages['Settings'].music else 0)
         elif pressed == 'Menu':
-            if self.current_page == 'Game':
-                self.pages['Confirm'] = Confirm(width, height, self.pages['Game'].surface)
-                self.changePage('Confirm')
-            else:
-                self.changePage('Menu')
-        elif pressed == 'Pause':
-            self.pages['Pause'] = Pause(width, height, self.pages['Game'].surface)
-            self.changePage('Pause')
+            self.changePage('Menu')
         elif pressed == 'Unpause':
             self.changePage('Game')
         elif pressed == 'Yes':
@@ -501,7 +508,7 @@ class UserInterface:
         pygame.display.flip()
 
     def playMusic(self, page):
-        if not self.current_page == 'Settings' and not self.current_page == 'NotImplemented' and not self.current_page == 'Leaderboard':
+        if not self.current_page == 'Settings' and not self.current_page == 'Leaderboard':
             if page == 'Game':
                 if self.current_page == 'Pause' or self.current_page == 'Confirm':
                     pygame.mixer.music.unpause()
@@ -510,7 +517,7 @@ class UserInterface:
                     pygame.mixer.music.play(loops=-1)
             elif page == 'Pause' or page == 'Confirm':
                 pygame.mixer.music.pause()
-            elif not page == 'Settings' and not page == 'NotImplemented' and not page == 'Leaderboard':
+            elif not page == 'Settings' and not page == 'Leaderboard':
                 pygame.mixer.music.load(MUSIC[page])
                 pygame.mixer.music.play(loops=-1)
 
@@ -563,9 +570,9 @@ APPLE_COLORS = {
         }
 # FPS
 DIFFICULTY = {
-        'Easy' : 30,
-        'Normal' : 45,
-        'Hard': 60
+        'Easy' : 20,
+        'Normal' : 30,
+        'Hard': 40
         }
 # Music
 MUSIC = {
@@ -600,8 +607,14 @@ height = CELL_COUNT_Y * cell_size
 ui = UserInterface(width, height, cell_size)
 ui.changePage('Menu')
 
+running = True
+
 # Loop
-while ui.handle():
+while running:
+    if ui.current_page == 'Game':
+        running = ui.handleGame()
+    else:
+        running = ui.handle()
     if ui.update_flag:
         ui.update()
     else:
