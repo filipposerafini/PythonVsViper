@@ -312,6 +312,7 @@ class Settings(Page):
         self.sound = True
         self.music = True
         self.loadSettings()
+        pygame.mixer.music.set_volume(1 if self.music else 0)
 
     def update(self):
         super(Settings, self).update()
@@ -441,6 +442,7 @@ class GameOver(Page):
 class UserInterface:
 
     clock = pygame.time.Clock()
+
     def __init__(self, width, height, cell_size):
         self.screen = pygame.display.set_mode((width, height), pygame.HWSURFACE)
         self.game = None

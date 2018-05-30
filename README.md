@@ -1,10 +1,14 @@
-# PythonVsViper ![Python][python] ![Release][release] ![License][license]
+# Python VS Viper ![Python][python] ![Release][release] ![License][license]
 
-A revamped version of the classic Snake, written to learn a bit of Python.
+> A revamped version of the classic Snake.
+
+Python VS Viper is a very simple project created to learn Python.
+
+Check out also the [**Android**](https://github.com/filipposerafini/PythonVsAndroid) version.
 
 ## Requirements
 
-The game requires [**python**](https://www.python.org/getit/) and [**pygame**](https://github.com/pygame/pygame)
+The game requires [**python**](https://www.python.org/getit/) and [**pygame**](https://github.com/pygame/pygame).
 
 ## Usage
 
@@ -13,7 +17,15 @@ To play clone this repository
 git clone https://github.com/filipposerafini/PythonVsViper`
 ```
 
-and run `python game.py`
+and run `python game.py`.
+
+## Screenshots
+
+![menu](screenshots/menu.png "Menu")
+
+![game](screenshots/game.png "Game")
+
+![leaderboard](screenshots/leaderboard.png "Leaderboard")
 
 ## Thanks
 
