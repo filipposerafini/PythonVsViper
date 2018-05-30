@@ -202,10 +202,10 @@ class Game:
             self.apple.type = AppleTypes.NORMAL
         else:
             self.apple.expiration -= 1
+        if self.apple.type == AppleTypes.SPECIAL:
+            self.apple.move()
         for snake in self.snakes:
             snake.updatePosition()
-            if self.apple.type == AppleTypes.SPECIAL:
-                self.apple.move()
             if snake.hitSnake(snake) or snake.hitBorder():
                 SOUNDS['Hit'].play()
                 snake.changeColor(RED)

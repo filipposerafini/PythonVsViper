@@ -17,7 +17,7 @@ To play clone this repository
 git clone https://github.com/filipposerafini/PythonVsViper`
 ```
 
-and run `python game.py`.
+and run `python main.py`.
 
 ## Screenshots
 
