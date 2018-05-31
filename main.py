@@ -319,7 +319,7 @@ class Settings(Page):
         width = self.surface.get_width()
         height = self.surface.get_height()
         key = list(DIFFICULTY.keys())[self.difficulty]
-        self.buttons['Difficulty'] = self.display_text('   ' + key + '  ', height / 7, RED, (7 * width / 10, 2 * height / 5), BLACK)
+        self.buttons['Difficulty'] = self.display_text('   ' + key + '   ', height / 7, RED, (7 * width / 10, 2 * height / 5), BLACK)
         self.buttons['Music'] = self.display_text(' Music ', height / 9, WHITE if self.music else RED, (4 * width / 5, 4 * height / 5 - height / 50), RED if self.music else BLACK)
         self.buttons['Sound'] = self.display_text(' Sound ', height / 9, WHITE if self.sound else RED, (3 * width / 5, 4 * height / 5 - height / 50), RED if self.sound else BLACK)
 

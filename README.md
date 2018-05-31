@@ -1,4 +1,4 @@
-# Python VS Viper ![Python][python] ![Release][release] ![License][license]
+# Python VS Viper ![Python][python] ![Release][release] [![License](https://img.shields.io/badge/License-MIT-red.svg?longCache=true&style=flat-square)](LICENSE)
 
 > A revamped version of the classic Snake.
 
@@ -39,4 +39,3 @@ Copyright &copy; 2018, [Filippo Serafini](https://filipposerafini.github.io/)
 
 [python]: https://img.shields.io/badge/python-2.7/3-blue.svg?longCache=true&style=flat-square
 [release]: https://img.shields.io/badge/Release-1.2-brightgreen.svg?longCache=true&style=flat-square
-[license]: https://img.shields.io/badge/License-MIT-red.svg?longCache=true&style=flat-square
